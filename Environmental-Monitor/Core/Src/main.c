@@ -68,6 +68,7 @@ typedef struct {
 uint32_t R_Hum, R_Temp, R_Press;
 float Hum, Temp, Press;
 Cal c;
+volatile int mode; //0-temp, 1-press, 2-hum, 3-all
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -118,6 +119,17 @@ void Raw_Data(void){
 	R_Press = (Buff[0] << 12) | (Buff[1] << 4) | (Buff[2] >> 4);
 }
 
+void RTC_Timestamp(char *buff){
+	RTC_TimeTypeDef time;
+	RTC_DateTypeDef date;
+
+	HAL_RTC_GetTime(&hrtc, &time, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(&hrtc, &date, RTC_FORMAT_BCD);
+
+	sprintf(buff, "[%02d:%02d:%02d    %02d/%02d/20%02d]\r\n",
+			time.Hours, time.Minutes, time.Seconds,
+			date.Date, date.Month, date.Year);
+}
 //###########################################
 //CODE FROM DATASHEET
 // Returns temperature in DegC, resolution is 0.01 DegC. Output value of “5123” equals 51.23 DegC.
@@ -203,10 +215,35 @@ void BME280_Read(void){
 	Raw_Data();
 	Compensate();
 }
-void BME280_Display(void){
+void BME280_Display(int mode){
+	char msg[50];
+	char msg_date[50];
 
+	switch(mode){
+	case 0: { //only temperature
+		sprintf(msg, "Temperature: %.2fC\r\n\n", Temp);
+		break;
+	}
+	case 1: { //only pressure
+		sprintf(msg, "Pressure: %.2fhPa\r\n\n", Press);
+		break;
+	}
+	case 2: { //only humidity
+		sprintf(msg, "Humidity: %.2f%%\r\n\n", Hum);
+		break;
+	}
+	case 3: { //all
+		sprintf(msg, "Temperature: %.2fC\r\nPressure: %.2fhPa\r\nHumidity: %.2f%%\r\n\n", Temp, Press, Hum);
+		break;
+	}
+	}
+
+	RTC_Timestamp(msg_date);
+	HAL_UART_Transmit(&huart2, (uint8_t *)msg_date, strlen(msg_date), HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart2, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 }
 //#############################################
+
 /* USER CODE END 0 */
 
 /**
@@ -247,6 +284,19 @@ int main(void)
   if (id != 0x60) return 1;
   BME280_Init();
   uint32_t start = HAL_GetTick();
+
+  RTC_TimeTypeDef time;
+  RTC_DateTypeDef date;
+  time.Hours = 12;
+  time.Minutes = 0;
+  time.Seconds = 0;
+  date.Date = 4;
+  date.Month = 3;
+  date.Year = 26;
+
+  HAL_RTC_SetTime(&hrtc, &time, RTC_FORMAT_BIN);
+  HAL_RTC_SetDate(&hrtc, &date, RTC_FORMAT_BCD);
+  mode = 3;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -255,7 +305,7 @@ int main(void)
   {
 	  if(HAL_GetTick() - start >= 3000){
 		  BME280_Read();
-		  BME280_Display();
+		  BME280_Display(mode);
 		  start = HAL_GetTick();
 	  }
 
@@ -314,7 +364,12 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == BTN_Pin){
+		if(mode == 3) mode = 0;
+		else mode++;
+	}
+}
 /* USER CODE END 4 */
 
 /**
