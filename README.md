@@ -1,3 +1,45 @@
-STM32F411RE-based environmental monitoring system using BME280 sensor over I2C. 
-Features include: raw sensor data acquisition with full factory calibration (temperature, pressure, humidity), integer-arithmetic compensation formulas ported from BME280 datasheet, RTC-stamped periodic readings sent via UART2 every 3 seconds, and EXTI interrupt handling for cycling through 4 display modes (temperature / pressure / humidity / all). 
-Configured in normal mode with 2× humidity oversampling, 16× pressure oversampling, and IIR filter coefficient 8.
+STM32F411RE Environmental Monitoring System
+This project implements an embedded environmental monitoring system based on the STM32F411RE microcontroller and the BME280 sensor connected via I2C.
+
+Features
+
+*** Sensor Data Acquisition ***
+
+Reads temperature, pressure, and humidity from the BME280 sensor
+Uses full factory calibration data for accurate measurements
+
+*** Data Processing ***
+
+Implements integer-based compensation formulas ported from the BME280 datasheet
+Optimized for embedded execution without floating-point dependency
+
+*** Periodic Measurements ***
+
+RTC-driven sampling mechanism
+Sensor data transmitted via UART2 every 3 seconds
+
+*** User Interface (EXTI Interrupts) ***
+
+External interrupt-based mode switching
+Four display modes:
+Temperature
+Pressure
+Humidity
+All parameters
+
+Configuration
+
+The BME280 sensor is configured in normal mode with the following settings:
+
+Humidity oversampling: 2x
+Pressure oversampling: 16x
+IIR filter coefficient: 8
+
+Technologies
+STM32F411RE (ARM Cortex-M4)
+C (embedded firmware)
+STM32 HAL library
+I2C communication protocol
+UART communication
+External interrupts (EXTI)
+RTC (Real-Time Clock)
